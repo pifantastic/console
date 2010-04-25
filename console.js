@@ -54,14 +54,13 @@ function run(cmd) {
     url: "console.php",
     data: {history: history},
     success: function(data) {
-      result = ["", data.result];
+      result = ["TODO", data.result];
     },
     error: function(e) {
-      result = ["ERROR", "ERROR"];
+      result = ["error", "Unknown error"];
     },
     dataType: "json"
   });
-  
   
   return result;
 }
