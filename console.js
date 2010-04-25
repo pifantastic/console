@@ -46,21 +46,24 @@ function cleanse(s) {
 }
 
 function run(cmd) {
-  var rawoutput = null, className = 'response';
-
-  if (!help.test(cmd)) {
-    try {
-      rawoutput = sandboxframe.contentWindow.eval(cmd);
-    } catch (e) {
-      rawoutput = e.message;
-      className = 'error';
-    }
-    return [className, cleanse(stringify(rawoutput))];
-  } else {
-    return [className, showhelp()];
-  }
-
-  // return [className, cleanse(stringify(rawoutput))];
+  var result;
+  
+  $.ajax({
+    async: false,
+    type: 'POST',
+    url: "console.php",
+    data: {history: history},
+    success: function(data) {
+      result = ["", data.result];
+    },
+    error: function(e) {
+      result = ["ERROR", "ERROR"];
+    },
+    dataType: "json"
+  });
+  
+  
+  return result;
 }
 
 function post(cmd) {
@@ -75,19 +78,21 @@ function post(cmd) {
       span = document.createElement('span'),
       parent = output.parentNode, 
       response = run(cmd);
+  
+  if (response[1]) {
+    el.className = 'response';
+    span.innerHTML = response[1];
+
+    if (!help.test(cmd)) prettyPrint([span]);
+    el.appendChild(span);
     
-  el.className = 'response';
-  span.innerHTML = response[1];
+    li.className = response[0];
+    li.innerHTML = '<span class="gutter"></span>';
+    li.appendChild(el);
 
-  if (!help.test(cmd)) prettyPrint([span]);
-  el.appendChild(span);
-
-  li.className = response[0];
-  li.innerHTML = '<span class="gutter"></span>';
-  li.appendChild(el);
-
-  appendLog(li);
-    
+    appendLog(li);
+  }
+  
   output.parentNode.scrollTop = 0;
   if (!body.className) exec.value = '';
   pos = history.length;
@@ -230,8 +235,6 @@ window._console = {
 var exec = document.getElementById('exec'),
     form = exec.form,
     output = document.getElementById('output'),
-    sandboxframe = document.createElement('iframe'),
-    sandbox = null,
     fakeConsole = 'window.top._console',
     history = [''],
     pos = 0,
@@ -239,14 +242,6 @@ var exec = document.getElementById('exec'),
     body = document.getElementsByTagName('body')[0],
     logAfter = null,
     help = /^:help$/i;
-
-body.appendChild(sandboxframe);
-sandboxframe.setAttribute('id', 'sandbox');
-sandbox = sandboxframe.contentDocument || sandboxframe.contentWindow.document;
-sandbox.open();
-// stupid jumping through hoops if Firebug is open, since overwriting console throws error
-sandbox.write('<script>(function () { var fakeConsole = ' + fakeConsole + '; if (console != undefined) { for (var k in fakeConsole) { console[k] = fakeConsole[k]; } } else { console = fakeConsole; } })();</script>');
-sandbox.close();
 
 // tweaks to interface to allow focus
 if (!('autofocus' in document.createElement('input'))) exec.focus();
